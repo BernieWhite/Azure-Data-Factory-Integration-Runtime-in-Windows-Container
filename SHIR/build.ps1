@@ -5,18 +5,44 @@ function Write-Log($Message) {
     Write-Host "[$(TS)] $Message"
 }
 
-function Install-SHIR() {
-    Write-Log "Install the Self-hosted Integration Runtime in the Windows container"
+function Save-SHIR {
+    [CmdletBinding()]
+    param ()
+    end {
+        if (Test-Path -Path 'C:\SHIR\IntegrationRuntime_5.4.7749.1.msi') {
+            return $True;
+        }
 
-    $MsiFileName = (Get-ChildItem -Path C:\SHIR | Where-Object { $_.Name -match [regex] "IntegrationRuntime_.*.msi" })[0].Name
-    Write-Log $MsiFileName
-
-    Start-Process msiexec.exe -Wait -ArgumentList "/i C:\SHIR\$MsiFileName /qn"
-    if (!$?) {
-        Write-Log "SHIR MSI Install Failed"
+        $progress = $ProgressPreference;
+        try {
+            $ProgressPreference = [System.Management.Automation.ActionPreference]::SilentlyContinue;
+            Invoke-WebRequest -Uri 'https://download.microsoft.com/download/E/4/7/E4771905-1079-445B-8BF9-8A1A075D8A10/IntegrationRuntime_5.4.7749.1.msi' -OutFile 'C:\SHIR\IntegrationRuntime_5.4.7749.1.msi';
+            return $True;
+        }
+        catch {
+            return $False;
+        }
+        finally {
+            $ProgressPreference = $progress;
+        }
     }
+}
 
-    Write-Log "SHIR MSI Install Successfully"
+function Install-SHIR {
+    param ()
+    end {
+        Write-Log "Install the Self-hosted Integration Runtime in the Windows container"
+
+        $MsiFileName = (Get-ChildItem -Path C:\SHIR | Where-Object { $_.Name -match [regex] "IntegrationRuntime_.*.msi" })[0].Name
+        Start-Process msiexec.exe -Wait -ArgumentList "/i C:\SHIR\$MsiFileName /qn NOFIREWALL=1"
+        if (!$?) {
+            Write-Log "SHIR MSI Install Failed"
+            return $False;
+        }
+
+        Write-Log "SHIR MSI Install Successfully"
+        return $True;
+    }
 }
 
 function SetupEnv() {
@@ -25,6 +51,9 @@ function SetupEnv() {
     Write-Log "SHIR Environment Setup Successfully"
 }
 
-Install-SHIR
-
-exit 0
+if ((Save-SHIR) -and (Install-SHIR)) {
+    exit 0;
+}
+else {
+    exit 1;
+}

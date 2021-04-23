@@ -1,4 +1,4 @@
-$DmgcmdPath = "C:\Program Files\Microsoft Integration Runtime\4.0\Shared\dmgcmd.exe"
+$DmgcmdPath = "C:\Program Files\Microsoft Integration Runtime\5.0\Shared\dmgcmd.exe"
 
 function Check-Node-Connection() {
     Start-Process $DmgcmdPath -Wait -ArgumentList "-cgc" -RedirectStandardOutput "C:\SHIR\status-check.txt"
@@ -13,6 +13,6 @@ function Check-Node-Connection() {
     }
 }
 
-if (Check-Node-Connection) {   
+if (Check-Node-Connection) {
     exit 0
 }
